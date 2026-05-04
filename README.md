@@ -6,7 +6,7 @@ A secure KeePass password manager wrapper with encryption and TOTP support using
 
 This package provides a Python wrapper around **pykeepass** for managing KeePass databases with additional security features:
 
-- **Encryption**: Optional in-memory encryption of sensitive data using Fernet
+- **Encryption**: In-memory encryption of sensitive data using Fernet
 - **TOTP Support**: Automatic generation of time-based one-time passwords
 - **Type Safety**: Full type hints and static type checking with **mypy**
 - **Pydantic Config**: Configuration validation and management
@@ -41,10 +41,7 @@ from keepass_wrapper import KeePass, Config
 keepass = KeePass()
 
 # Or with custom configuration
-config = Config(
-    database_path="/path/to/passwords.kdbx",
-    encrypt_entries=True
-)
+config = Config(database_path="/path/to/passwords.kdbx")
 keepass = KeePass(config)
 
 # Access entries
@@ -66,7 +63,6 @@ config = Config()
 # Create with custom settings
 config = Config(
     database_path="/home/user/.config/passwords.kdbx",
-    encrypt_entries=True,
     filter_title="Work"
 )
 ```
@@ -87,16 +83,14 @@ results = keepass.find_entries("Gmail", startswith=True)
 results = keepass.find_entries(["Gmail", "GitHub"])
 ```
 
-### Using Encryption
+### Using Encrypted Entries
 
 ```python
-from keepass_wrapper import KeePass, Config
-
-# Enable encryption
-config = Config(encrypt_entries=True)
-keepass = KeePass(config)
+from keepass_wrapper import KeePass
 
 # Encryption happens automatically on initialization
+keepass = KeePass()
+
 for entry in keepass.entries:
     password = entry.get_password()  # Decrypts on demand
     totp = entry.get_totp()  # Generates TOTP from encrypted secret
@@ -190,7 +184,7 @@ pykeepass-wrapper/
 
 - **Type hints**: Full type annotations for IDE support and mypy compatibility
 - **Pydantic validation**: Runtime type validation and configuration management
-- **Encryption**: Optional Fernet-based encryption of passwords and TOTP secrets
+- **Encryption**: Fernet-based encryption of passwords and TOTP secrets
 - **TOTP Support**: Automatic TOTP generation from KeePass OTP fields
 - **Bash Integration**: Execute commands with automatic password input
 - **Error Handling**: Graceful authentication retry with max attempt limits
@@ -210,7 +204,7 @@ pykeepass-wrapper/
 
 ## Security Considerations
 
-- **Password handling**: All passwords encrypted in memory when encryption is enabled
+- **Password handling**: All passwords encrypted in memory
 - **TOTP secrets**: OTP secrets encrypted alongside passwords
 - **Key management**: New Fernet key generated per session
 - **Garbage collection**: Explicit cleanup of PyKeePass objects after use

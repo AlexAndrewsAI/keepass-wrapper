@@ -1,18 +1,14 @@
 import pytest
+from unittest.mock import patch
 
 from keepass_wrapper.keepass import KeePass
 
 
 @pytest.fixture(scope="session")
 def keepass_instance() -> KeePass:
-    """Fixture that provides a single KeePass instance for all tests."""
-    return KeePass(encrypt_entries=False)
-
-
-@pytest.fixture(scope="session")
-def keepass_encrypted() -> KeePass:
-    """Fixture that provides a single encrypted KeePass instance."""
-    return KeePass(encrypt_entries=True)
+    """Fixture that provides a KeePass instance with mocked password input."""
+    with patch("keepass_wrapper.keepass.getpass.getpass", return_value="123"):
+        return KeePass()
 
 
 def test_keepass_loads_entries_from_database(keepass_instance: KeePass) -> None:
@@ -28,7 +24,7 @@ def test_keepass_find_single_entry(keepass_instance: KeePass) -> None:
 
     assert len(results) == 1
     assert results[0].username == "john.doe@gmail.com"
-    assert results[0].password == "p@ssw0rd123"
+    assert results[0].get_password() == "p@ssw0rd123"
     assert results[0].url == "https://gmail.com"
 
 
@@ -55,7 +51,7 @@ def test_keepass_find_entry_with_special_characters(keepass_instance: KeePass) -
 
     assert len(results) == 1
     assert results[0].username == "user#special"
-    assert results[0].password == "~!@#$%^&*()"
+    assert results[0].get_password() == "~!@#$%^&*()"
 
 
 def test_keepass_find_entry_missing_optional_fields(keepass_instance: KeePass) -> None:
@@ -63,7 +59,7 @@ def test_keepass_find_entry_missing_optional_fields(keepass_instance: KeePass) -
     results = keepass_instance.find_entries("Test Account")
 
     assert len(results) == 1
-    assert results[0].password == "test123"
+    assert results[0].get_password() == "test123"
     assert results[0].url is None
 
 
@@ -116,23 +112,6 @@ def test_keepass_find_multiple_titles(keepass_instance: KeePass) -> None:
     titles = [entry.title for entry in results]
     assert "Gmail" in titles
     assert "GitHub" in titles
-
-
-def test_keepass_with_encryption_passwords_are_encrypted(
-    keepass_encrypted: KeePass,
-) -> None:
-    """Test that passwords are encrypted in memory when encryption is enabled."""
-    results = keepass_encrypted.find_entries("Gmail")
-
-    # Encrypted password should not be in plaintext
-    assert results[0].password != b"p@ssw0rd123"
-
-
-def test_keepass_encryption_manager_initialized(keepass_encrypted: KeePass) -> None:
-    """Test that encryption manager is initialized when enabled."""
-    assert keepass_encrypted.encryption_manager is not None
-    assert keepass_encrypted.kp is None
-
 
 def test_keepass_all_entries_have_title(keepass_instance: KeePass) -> None:
     """Test that all loaded entries have a title field."""

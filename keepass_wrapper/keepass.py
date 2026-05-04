@@ -1,6 +1,5 @@
 import gc
 import getpass
-from typing import Optional
 
 from pykeepass import PyKeePass
 
@@ -10,29 +9,31 @@ from keepass_wrapper.entry import KeePassEntry
 
 
 class KeePass:
-    """Manager for KeePass database with optional encryption."""
+    """Manager for KeePass database with encryption."""
 
     def __init__(
-        self, database_path=None, encrypt_entries=None, filter_title=None
+        self,
+        database_path: str | None = None,
+        filter_title: str | None = None,
+        enable_encryption: bool = True,
     ) -> None:
         """Initialize KeePass manager.
 
         Args:
-            config: Configuration object (uses defaults if None)
+            database_path: Path to the .kdbx file (uses config default if None)
+            filter_title: Optional title filter for entries
+            enable_encryption: Whether to encrypt passwords in memory (default: True)
 
         Raises:
             ValueError: If unable to authenticate to KeePass database
         """
         config = Config.from_kwargs(
             database_path=database_path,
-            encrypt_entries=encrypt_entries,
             filter_title=filter_title,
         )
 
         self.config = config
-        self.encryption_manager: Optional[EncryptionManager] = None
-        if config.encrypt_entries:
-            self.encryption_manager = EncryptionManager()
+        self.encryption_manager = EncryptionManager() if enable_encryption else None
 
         # Load KeePass database with password prompt
         self.kp = self._load_database(config.database_path)
@@ -40,17 +41,16 @@ class KeePass:
         # Get entries, optionally filtered by title
         entries = self.kp.entries
 
-        # Wrap entries with optional encryption
+        # Wrap entries with encryption
         self.entries: list[KeePassEntry] = self._wrap_entries(entries)
 
         # Apply title filter after wrapping
         if config.filter_title:
             self.entries = self.find_entries(config.filter_title)
 
-        # Clean up PyKeePass object if encryption is enabled
-        if config.encrypt_entries:
-            self.kp = None  # type: ignore
-            gc.collect()
+        # Clean up PyKeePass object after loading entries
+        self.kp = None
+        gc.collect()
 
     def _load_database(self, database_path: str) -> PyKeePass:
         """Load KeePass database with password authentication.

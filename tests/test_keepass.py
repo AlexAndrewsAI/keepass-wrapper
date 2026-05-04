@@ -34,60 +34,6 @@ def test_keepass_initialization_default_encryption(
 
 @patch("keepass_wrapper.keepass.getpass.getpass")
 @patch("keepass_wrapper.keepass.PyKeePass")
-def test_keepass_initialization_without_encryption(
-    mock_pykeepass: Mock, mock_getpass: Mock
-) -> None:
-    """Test KeePass initialization without encryption."""
-    mock_getpass.return_value = "password"
-
-    # Mock PyKeePass instance
-    mock_kp = Mock()
-    mock_entry = Mock()
-    mock_entry.title = "Test Entry"
-    mock_entry.username = "testuser"
-    mock_entry.password = None
-    mock_entry.otp = None
-    mock_entry.url = None
-
-    mock_kp.entries = [mock_entry]
-    mock_pykeepass.return_value = mock_kp
-
-    keepass = KeePass(encrypt_entries=False)
-
-    assert len(keepass.entries) == 1
-    assert keepass.entries[0].title == "Test Entry"
-    assert keepass.kp == mock_kp
-    assert keepass.encryption_manager is None
-
-
-@patch("keepass_wrapper.keepass.getpass.getpass")
-@patch("keepass_wrapper.keepass.PyKeePass")
-def test_keepass_with_encryption(mock_pykeepass: Mock, mock_getpass: Mock) -> None:
-    """Test KeePass initialization with encryption explicitly enabled."""
-    mock_getpass.return_value = "password"
-
-    mock_kp = Mock()
-    mock_entry = Mock()
-    mock_entry.title = "Encrypted Entry"
-    mock_entry.username = "user"
-    mock_entry.password = "secret"
-    mock_entry.otp = None
-    mock_entry.url = None
-
-    mock_kp.entries = [mock_entry]
-    mock_pykeepass.return_value = mock_kp
-
-    keepass = KeePass(encrypt_entries=True)
-
-    assert keepass.encryption_manager is not None
-    assert len(keepass.entries) == 1
-    assert keepass.entries[0].password is not None
-    # After encryption is enabled, kp should be None
-    assert keepass.kp is None
-
-
-@patch("keepass_wrapper.keepass.getpass.getpass")
-@patch("keepass_wrapper.keepass.PyKeePass")
 def test_keepass_authentication_failure_then_success(
     mock_pykeepass: Mock, mock_getpass: Mock
 ) -> None:
@@ -99,9 +45,9 @@ def test_keepass_authentication_failure_then_success(
 
     mock_getpass.return_value = "password"
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
-    assert keepass.kp == mock_kp_success
+    assert keepass.kp is None  # kp is cleared after encryption
 
 
 @patch("keepass_wrapper.keepass.getpass.getpass")
@@ -114,7 +60,7 @@ def test_keepass_authentication_max_retries(
     mock_getpass.return_value = "password"
 
     try:
-        KeePass(encrypt_entries=False)
+        KeePass()
         assert False, "Should have raised ValueError"
     except ValueError as e:
         assert "Failed to authenticate" in str(e)
@@ -146,7 +92,7 @@ def test_keepass_find_entries_by_title(
     mock_kp.entries = [mock_entry1, mock_entry2]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
     results = keepass.find_entries("Gmail")
     assert len(results) == 1
@@ -179,7 +125,7 @@ def test_keepass_find_entries_partial_match(
     mock_kp.entries = [mock_entry1, mock_entry2]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
     results = keepass.find_entries("Gmail")
     assert len(results) == 2
@@ -211,7 +157,7 @@ def test_keepass_find_entries_exact_match(
     mock_kp.entries = [mock_entry1, mock_entry2]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
     results = keepass.find_entries("Gmail", exact=True)
     assert len(results) == 1
@@ -244,7 +190,7 @@ def test_keepass_find_entries_startswith(
     mock_kp.entries = [mock_entry1, mock_entry2]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
     results = keepass.find_entries("Gmail", startswith=True)
     assert len(results) == 1
@@ -284,7 +230,7 @@ def test_keepass_find_entries_multiple_titles(
     mock_kp.entries = [mock_entry1, mock_entry2, mock_entry3]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(encrypt_entries=False)
+    keepass = KeePass()
 
     results = keepass.find_entries(["Gmail", "GitHub"])
     assert len(results) == 2
@@ -319,7 +265,7 @@ def test_keepass_with_title_filter_in_config(
     mock_kp.entries = [mock_entry1, mock_entry2]
     mock_pykeepass.return_value = mock_kp
 
-    keepass = KeePass(filter_title="Gmail", encrypt_entries=False)
+    keepass = KeePass(filter_title="Gmail")
 
     assert len(keepass.entries) == 1
     assert keepass.entries[0].title == "Gmail"
