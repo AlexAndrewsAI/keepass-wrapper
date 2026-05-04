@@ -231,29 +231,5 @@ This is a template-based project. Feel free to use it as a starting point for yo
 
 ## Author
 
-Your Name <your.email@example.com>
-```
-
----
-
-## Summary
-
-Your **KeePass wrapper** has been fully adapted to the template! Here's what was reorganized:
-
-| Component | Changes |
-|-----------|---------|
-| **Separation of Concerns** | Split monolithic code into: `encryption.py`, `otp.py`, `entry.py`, `keepass.py` |
-| **Type Hints** | Added full type annotations throughout (mypy strict mode compatible) |
-| **Configuration** | Created `Config` pydantic model for database path and options |
-| **Testing** | 30+ comprehensive tests with mocking for KeePass and subprocess |
-| **Documentation** | Complete README with usage examples for all features |
-| **Best Practices** | Proper error handling, docstrings, dependency management |
-
-You're ready to use this! Just update the author info in `pyproject.toml` and `README.md`, then run:
-
-```bash
-uv sync
-uv run pytest
-uv run ruff check keepass_wrapper tests
-uv run mypy keepass_wrapper
+AlexAndrewsAI <alex.andrews.ai@protonmail.com>
 ```
