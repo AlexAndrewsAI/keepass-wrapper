@@ -1,3 +1,10 @@
+"""KeePass database manager with encryption and TOTP support.
+
+This module provides a high-level interface for managing KeePass password databases,
+with optional in-memory encryption for passwords and OTP secrets. It handles
+database authentication, entry wrapping, and entry filtering.
+"""
+
 import gc
 import getpass
 
@@ -9,7 +16,19 @@ from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
 
 
 class KeePass:
-    """Manager for KeePass database with encryption."""
+    """Manager for KeePass database with optional encryption and TOTP support.
+    
+    This class provides a secure interface to a KeePass (.kdbx) database. It handles
+    authentication, wraps entries with optional in-memory encryption, and provides
+    filtering and search capabilities. After loading, the underlying PyKeePass
+    instance is explicitly cleaned up to minimize sensitive data in memory.
+    
+    Attributes:
+        config: Configuration object containing database path and filter settings.
+        encryption_manager: EncryptionManager instance for encrypting passwords and
+                           OTP secrets, or None if encryption is disabled.
+        entries: List of KeePassEntry objects loaded from the database.
+    """
 
     config: Config
     encryption_manager: EncryptionManager | None
@@ -21,15 +40,29 @@ class KeePass:
         filter_title: str | None = None,
         enable_encryption: bool = True,
     ) -> None:
-        """Initialize KeePass manager.
-
+        """Initialize the KeePass manager and load the database.
+        
+        Prompts the user for a password, authenticates to the KeePass database,
+        wraps all entries with optional encryption, and applies any specified
+        title filters. The underlying PyKeePass object is cleaned up after loading
+        to minimize sensitive data in memory.
+        
         Args:
-            database_path: Path to the .kdbx file (uses config default if None)
-            filter_title: Optional title filter for entries
-            enable_encryption: Whether to encrypt passwords in memory (default: True)
-
+            database_path: Path to the .kdbx database file. If None, uses the default
+                          path from Config.
+            filter_title: Optional title substring to filter entries after loading.
+                         Only entries containing this string (case-insensitive) will
+                         be retained.
+            enable_encryption: Whether to encrypt passwords and OTP secrets in-memory
+                              using Fernet encryption (default: True). If False,
+                              passwords are stored as plaintext.
+        
+        Returns:
+            None
+        
         Raises:
-            ValueError: If unable to authenticate to KeePass database
+            ValueError: If unable to authenticate to the KeePass database after
+                       the maximum number of attempts (3).
         """
         config = Config.from_kwargs(
             database_path=database_path,
@@ -54,16 +87,20 @@ class KeePass:
         gc.collect()
 
     def _load_database(self, database_path: str) -> PyKeePass:
-        """Load KeePass database with password authentication.
-
+        """Load and authenticate to the KeePass database.
+        
+        Prompts the user for a password and attempts to open the KeePass database
+        at the specified path. Supports multiple authentication attempts with
+        helpful feedback on failure.
+        
         Args:
-            database_path: Path to the .kdbx file
-
+            database_path: Path to the .kdbx database file.
+        
         Returns:
-            Authenticated PyKeePass instance
-
+            An authenticated PyKeePass instance.
+        
         Raises:
-            ValueError: If authentication fails
+            ValueError: If authentication fails after 3 attempts.
         """
         max_attempts = 3
 
@@ -81,13 +118,17 @@ class KeePass:
                     ) from e
 
     def _wrap_entries(self, entries: list[KeePassEntryLike]) -> list[KeePassEntry]:
-        """Wrap KeePass entries with optional encryption.
-
+        """Wrap pykeepass Entry objects with KeePassEntry wrapper.
+        
+        Converts raw pykeepass Entry objects into KeePassEntry instances with
+        optional encryption. This allows for consistent access patterns and
+        secure password handling across the application.
+        
         Args:
-            entries: List of pykeepass Entry objects
-
+            entries: List of pykeepass Entry objects from the database.
+        
         Returns:
-            List of KeePassEntry objects
+            List of KeePassEntry wrapper objects with encryption applied if enabled.
         """
         return [
             KeePassEntry(entry, encryption_manager=self.encryption_manager)
@@ -100,7 +141,29 @@ class KeePass:
         exact: bool = False,
         startswith: bool = False,
     ) -> list[KeePassEntry]:
-        """Find entries by title."""
+        """Find entries by title using flexible matching strategies.
+        
+        Searches the loaded entries for titles matching the given criteria. Supports
+        partial substring matching (default), exact matching, and prefix matching.
+        All comparisons are case-insensitive. Multiple search terms can be provided,
+        returning all entries matching any of the titles.
+        
+        Args:
+            title: A single title string or list of title strings to search for.
+            exact: If True, match only entries with exactly matching titles
+                  (case-insensitive). Default: False.
+            startswith: If True, match entries whose titles start with the search term
+                       (case-insensitive). Default: False.
+        
+        Returns:
+            List of KeePassEntry objects matching the search criteria. Returns an
+            empty list if no matches are found. Each matching entry appears only once
+            even if it matches multiple search terms.
+        
+        Note:
+            If both exact and startswith are False (the default), matching uses
+            substring containment (the search term can appear anywhere in the title).
+        """
         titles_to_search = title if isinstance(title, list) else [title]
         matching_entries: list[KeePassEntry] = []
 
