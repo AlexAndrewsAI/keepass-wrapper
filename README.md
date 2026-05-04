@@ -37,12 +37,12 @@ uv sync
 ```python
 from keepass_wrapper import KeePass, Config
 
-# Initialize with default configuration
+# Initialize with default settings
+# (prompts for password, uses default .kdbx path from config)
 keepass = KeePass()
 
-# Or with custom configuration
-config = Config(database_path="/path/to/passwords.kdbx")
-keepass = KeePass(config)
+# Or with custom database path
+keepass = KeePass(database_path="/path/to/passwords.kdbx")
 
 # Access entries
 for entry in keepass.entries:
@@ -52,25 +52,28 @@ for entry in keepass.entries:
 
 ### Configuration
 
-The `Config` class uses **pydantic** for validation:
+KeePass initializes with a **Pydantic Config** internally. You can customize behavior via constructor arguments:
 
 ```python
-from keepass_wrapper.config import Config
+from keepass_wrapper import KeePass
 
-# Create with defaults
-config = Config()
+# Custom database path
+keepass = KeePass(database_path="/home/user/.config/passwords.kdbx")
 
-# Create with custom settings
-config = Config(
+# Filter entries by title on initialization
+keepass = KeePass(
     database_path="/home/user/.config/passwords.kdbx",
     filter_title="Work"
 )
+
+# Disable in-memory encryption (store passwords plaintext)
+keepass = KeePass(enable_encryption=False)
 ```
 
 ### Finding Entries
 
 ```python
-# Find by partial match
+# Find by partial match (default)
 results = keepass.find_entries("Gmail")
 
 # Find by exact match
@@ -88,12 +91,17 @@ results = keepass.find_entries(["Gmail", "GitHub"])
 ```python
 from keepass_wrapper import KeePass
 
-# Encryption happens automatically on initialization
+# Encryption is enabled by default
 keepass = KeePass()
 
 for entry in keepass.entries:
     password = entry.get_password()  # Decrypts on demand
     totp = entry.get_totp()  # Generates TOTP from encrypted secret
+    
+    if password:
+        print(f"{entry.title}: {password}")
+    if totp:
+        print(f"TOTP: {totp}")
 ```
 
 ### TOTP Generation
@@ -101,8 +109,10 @@ for entry in keepass.entries:
 ```python
 # Get current TOTP code
 entry = keepass.entries[0]
-code = entry.get_totp()  # Returns 6-digit code as string
-print(f"Current code: {code}")
+
+code = entry.get_totp()
+if code:
+    print(f"Current code: {code}")  # Returns 6-digit code as string
 ```
 
 ### Bash Integration
@@ -110,6 +120,7 @@ print(f"Current code: {code}")
 ```python
 # Execute command with password input
 entry = keepass.entries[0]
+
 stdout, stderr = entry.bash_with_password(["ssh", "user@host"])
 
 # Pass password multiple times

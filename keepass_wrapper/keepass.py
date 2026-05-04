@@ -5,11 +5,15 @@ from pykeepass import PyKeePass
 
 from keepass_wrapper.config import Config
 from keepass_wrapper.encryption import EncryptionManager
-from keepass_wrapper.entry import KeePassEntry
+from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
 
 
 class KeePass:
     """Manager for KeePass database with encryption."""
+
+    config: Config
+    encryption_manager: EncryptionManager | None
+    entries: list[KeePassEntry]
 
     def __init__(
         self,
@@ -36,20 +40,17 @@ class KeePass:
         self.encryption_manager = EncryptionManager() if enable_encryption else None
 
         # Load KeePass database with password prompt
-        self.kp = self._load_database(config.database_path)
+        kp = self._load_database(config.database_path)
 
-        # Get entries, optionally filtered by title
-        entries = self.kp.entries
-
-        # Wrap entries with encryption
-        self.entries: list[KeePassEntry] = self._wrap_entries(entries)
+        # Wrap entries with optional encryption
+        self.entries = self._wrap_entries(kp.entries)
 
         # Apply title filter after wrapping
         if config.filter_title:
             self.entries = self.find_entries(config.filter_title)
 
-        # Clean up PyKeePass object after loading entries
-        self.kp = None
+        # Clean up references
+        del kp
         gc.collect()
 
     def _load_database(self, database_path: str) -> PyKeePass:
@@ -65,27 +66,21 @@ class KeePass:
             ValueError: If authentication fails
         """
         max_attempts = 3
-        attempts = 0
 
-        while attempts < max_attempts:
+        for attempt in range(max_attempts):
             try:
                 password = getpass.getpass("Enter KeePass password: ")
                 return PyKeePass(database_path, password=password)
             except Exception as e:
-                attempts += 1
                 print(f"Authentication failed: {e}")
-                if attempts < max_attempts:
-                    print(f"Try again ({max_attempts - attempts} attempts remaining).")
+                if attempt < max_attempts - 1:
+                    print(f"Try again ({max_attempts - attempt - 1} attempts remaining).")
                 else:
                     raise ValueError(
-                        "Failed to authenticate to KeePass database after "
-                        f"{max_attempts} attempts"
-                    )
+                        f"Failed to authenticate to KeePass database after {max_attempts} attempts"
+                    ) from e
 
-        # This should never be reached
-        raise ValueError("Unknown error loading KeePass database")
-
-    def _wrap_entries(self, entries: list[object]) -> list[KeePassEntry]:
+    def _wrap_entries(self, entries: list[KeePassEntryLike]) -> list[KeePassEntry]:
         """Wrap KeePass entries with optional encryption.
 
         Args:
@@ -94,16 +89,11 @@ class KeePass:
         Returns:
             List of KeePassEntry objects
         """
-        wrapped: list[KeePassEntry] = []
+        return [
+            KeePassEntry(entry, encryption_manager=self.encryption_manager)
+            for entry in entries
+        ]
 
-        for entry in entries:
-            wrapped_entry = KeePassEntry(
-                entry,
-                encryption_manager=self.encryption_manager,
-            )
-            wrapped.append(wrapped_entry)
-
-        return wrapped
     def find_entries(
         self,
         title: str | list[str],
@@ -111,24 +101,21 @@ class KeePass:
         startswith: bool = False,
     ) -> list[KeePassEntry]:
         """Find entries by title."""
-        if not isinstance(title, list):
-            titles_to_search = [title]
-        else:
-            titles_to_search = title
+        titles_to_search = title if isinstance(title, list) else [title]
+        matching_entries: list[KeePassEntry] = []
 
-        matching_entries = []
-
-        # Search through already-loaded and wrapped entries
         for entry in self.entries:
+            entry_title_lower = entry.title.lower()
+            
             for search_title in titles_to_search:
-                entry_title: str = entry.title.lower()
                 search_title_lower = search_title.lower()
 
-                if exact and search_title_lower == entry_title:
+                if (
+                    (exact and search_title_lower == entry_title_lower)
+                    or (startswith and entry_title_lower.startswith(search_title_lower))
+                    or (not exact and not startswith and search_title_lower in entry_title_lower)
+                ):
                     matching_entries.append(entry)
-                elif startswith and entry_title.startswith(search_title_lower):
-                    matching_entries.append(entry)
-                elif not exact and search_title_lower in entry_title:
-                    matching_entries.append(entry)
+                    break  # Don't add same entry multiple times
 
         return matching_entries

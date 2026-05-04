@@ -1,8 +1,17 @@
 import subprocess
-from typing import Optional
+from typing import Protocol
 
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.otp import extract_totp_secret, generate_totp
+
+
+class KeePassEntryLike(Protocol):
+    """Protocol defining the interface of a pykeepass Entry."""
+    title: str
+    username: str | None
+    url: str | None
+    password: str | None
+    otp: str | None
 
 
 class KeePassEntry:
@@ -10,74 +19,58 @@ class KeePassEntry:
 
     def __init__(
         self,
-        entry: object,
-        encryption_manager: Optional[EncryptionManager] = None,
+        entry: KeePassEntryLike,
+        encryption_manager: EncryptionManager | None = None,
     ) -> None:
-        """Initialize a KeePass entry.
-
-        Args:
-            entry: A pykeepass Entry object
-            encryption_manager: Optional EncryptionManager for encrypting sensitive data
-        """
-        self.title: str = entry.title  # type: ignore
-        self.username: Optional[str] = entry.username if entry.username else None  # type: ignore
-        self.url: Optional[str] = entry.url if entry.url else None  # type: ignore
-
-        # Encrypt password and OTP if encryption manager is provided
-        self.password: Optional[bytes] = None
-        self.otp: Optional[bytes] = None
-
-        # Encrypt password and OTP if encryption manager is provided
-        if encryption_manager:
-            if entry.password:  # type: ignore
-                self.password = encryption_manager.encrypt(entry.password)  # type: ignore
-            if entry.otp:  # type: ignore
-                self.otp = encryption_manager.encrypt(entry.otp)  # type: ignore
-        else:
-            # Store plaintext password when no encryption
-            self.password = entry.password if entry.password else None  # type: ignore
-            self.otp = entry.otp if entry.otp else None  # type: ignore
-
+        """Initialize a KeePass entry."""
+        self.title: str = entry.title
+        self.username: str | None = entry.username if entry.username else None
+        self.url: str | None = entry.url if entry.url else None
         self._encryption_manager = encryption_manager
 
+        # Store password/OTP as either encrypted (bytes) or plaintext (str)
+        self.password: str | bytes | None = None
+        self.otp: str | bytes | None = None
 
+        if encryption_manager:
+            if entry.password:
+                self.password = encryption_manager.encrypt(entry.password)
+            if entry.otp:
+                self.otp = encryption_manager.encrypt(entry.otp)
+        else:
+            self.password = entry.password if entry.password else None
+            self.otp = entry.otp if entry.otp else None
 
-    def get_password(self) -> Optional[str]:
-        """Retrieve decrypted password.
-
-        Returns:
-            The plaintext password or None if not available
-        """
-        if self.password and self._encryption_manager:
+    def get_password(self) -> str | None:
+        """Retrieve decrypted password."""
+        if not self.password:
+            return None
+        
+        if isinstance(self.password, bytes):
+            assert self._encryption_manager is not None
             return self._encryption_manager.decrypt(self.password)
-        return None
+        return self.password
 
-    def get_totp(self) -> Optional[str]:
-        """Generate TOTP code from encrypted OTP secret.
-
-        Returns:
-            The current TOTP code or None if OTP not available
-        """
-        if self.otp and self._encryption_manager:
-            decrypted_otp = self._encryption_manager.decrypt(self.otp)
-            secret = extract_totp_secret(decrypted_otp)
-            return generate_totp(secret)
-        return None
+    def get_totp(self) -> str | None:
+        """Generate TOTP code from encrypted OTP secret."""
+        if not self.otp:
+            return None
+        
+        if isinstance(self.otp, bytes):
+            assert self._encryption_manager is not None
+            otp_value = self._encryption_manager.decrypt(self.otp)
+        else:
+            otp_value = self.otp
+        
+        secret = extract_totp_secret(otp_value)
+        return generate_totp(secret)
 
     def bash_with_password(
         self,
         command: list[str],
         count: int = 1,
     ) -> tuple[str, str]:
-        """Execute a bash command with password input.
-
-        Args:
-            command: List of command arguments (as for subprocess.Popen)
-            count: Number of times to repeat the password input
-
-        Returns:
-            Tuple of (stdout, stderr)
-        """
+        """Execute a bash command with password input."""
         password = self.get_password()
         if not password:
             raise ValueError("Password not available for bash execution")
