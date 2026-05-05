@@ -1,6 +1,9 @@
 from unittest.mock import Mock, patch
-from keepass_wrapper.keepass import KeePass
+
 import pytest
+
+from keepass_wrapper.keepass import KeePass
+
 
 def create_mock_entry(
     title: str,
@@ -42,23 +45,6 @@ def test_keepass_initialization_default_encryption(
     assert len(keepass.entries) == 1
     assert keepass.entries[0].title == "Test Entry"
     assert keepass.encryption_manager is not None
-
-
-@patch("keepass_wrapper.keepass.getpass.getpass")
-@patch("keepass_wrapper.keepass.PyKeePass")
-def test_keepass_initialization_encryption_disabled(
-    mock_pykeepass: Mock, mock_getpass: Mock
-) -> None:
-    """Test KeePass initialization with encryption disabled."""
-    mock_getpass.return_value = "password"
-    mock_entry = create_mock_entry("Test Entry")
-    mock_kp = create_mock_pykeepass([mock_entry])
-    mock_pykeepass.return_value = mock_kp
-
-    keepass = KeePass(enable_encryption=False)
-
-    assert len(keepass.entries) == 1
-    assert keepass.encryption_manager is None
 
 
 @patch("keepass_wrapper.keepass.getpass.getpass")

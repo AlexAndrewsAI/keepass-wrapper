@@ -64,8 +64,9 @@ class KeePass:
             ValueError: If unable to authenticate to the KeePass database after
                        the maximum number of attempts (3).
         """
-        config = Config.from_kwargs(
-            database_path=database_path,
+
+        config = Config(
+            database_path=database_path or Config.model_fields["database_path"].default,
             filter_title=filter_title,
         )
 
@@ -169,7 +170,7 @@ class KeePass:
 
         for entry in self.entries:
             entry_title_lower = entry.title.lower()
-            
+
             for search_title in titles_to_search:
                 search_title_lower = search_title.lower()
 

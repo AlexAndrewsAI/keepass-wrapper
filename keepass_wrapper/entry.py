@@ -90,13 +90,16 @@ class KeePassEntry:
             The plaintext password string, or None if no password is stored.
         
         Raises:
-            AssertionError: If password is encrypted but no encryption manager is available.
+            RuntimeError: If password is encrypted but no encryption manager is available.
         """
         if not self.password:
             return None
-        
+
         if isinstance(self.password, bytes):
-            assert self._encryption_manager is not None
+            if not self._encryption_manager:
+                raise RuntimeError(
+                    "Cannot decrypt password: encryption manager not initialized"
+                )
             return self._encryption_manager.decrypt(self.password)
         return self.password
 
@@ -111,17 +114,20 @@ class KeePassEntry:
             A 6-digit TOTP code as a string, or None if no OTP secret is stored.
         
         Raises:
-            AssertionError: If OTP is encrypted but no encryption manager is available.
+            RuntimeError: If OTP is encrypted but no encryption manager is available.
         """
         if not self.otp:
             return None
-        
+
         if isinstance(self.otp, bytes):
-            assert self._encryption_manager is not None
+            if not self._encryption_manager:
+                raise RuntimeError(
+                    "Cannot decrypt password: encryption manager not initialized"
+                )
             otp_value = self._encryption_manager.decrypt(self.otp)
         else:
             otp_value = self.otp
-        
+
         secret = extract_totp_secret(otp_value)
         return generate_totp(secret)
 
