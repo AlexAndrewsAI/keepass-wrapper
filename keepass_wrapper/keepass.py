@@ -1,7 +1,7 @@
 """KeePass database manager with encryption and TOTP support.
 
 This module provides a high-level interface for managing KeePass password databases,
-with optional in-memory encryption for passwords and OTP secrets. It handles
+with in-memory encryption for passwords and OTP secrets. It handles
 database authentication, entry wrapping, and entry filtering.
 """
 
@@ -16,34 +16,33 @@ from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
 
 
 class KeePass:
-    """Manager for KeePass database with optional encryption and TOTP support.
+    """Manager for KeePass database with encryption and TOTP support.
     
     This class provides a secure interface to a KeePass (.kdbx) database. It handles
-    authentication, wraps entries with optional in-memory encryption, and provides
+    authentication, wraps entries with in-memory encryption, and provides
     filtering and search capabilities. After loading, the underlying PyKeePass
     instance is explicitly cleaned up to minimize sensitive data in memory.
     
     Attributes:
         config: Configuration object containing database path and filter settings.
         encryption_manager: EncryptionManager instance for encrypting passwords and
-                           OTP secrets, or None if encryption is disabled.
+                           OTP secrets.
         entries: List of KeePassEntry objects loaded from the database.
     """
 
     config: Config
-    encryption_manager: EncryptionManager | None
+    encryption_manager: EncryptionManager
     entries: list[KeePassEntry]
 
     def __init__(
         self,
         database_path: str | None = None,
         filter_title: str | None = None,
-        enable_encryption: bool = True,
     ) -> None:
         """Initialize the KeePass manager and load the database.
         
         Prompts the user for a password, authenticates to the KeePass database,
-        wraps all entries with optional encryption, and applies any specified
+        wraps all entries with encryption, and applies any specified
         title filters. The underlying PyKeePass object is cleaned up after loading
         to minimize sensitive data in memory.
         
@@ -53,9 +52,6 @@ class KeePass:
             filter_title: Optional title substring to filter entries after loading.
                          Only entries containing this string (case-insensitive) will
                          be retained.
-            enable_encryption: Whether to encrypt passwords and OTP secrets in-memory
-                              using Fernet encryption (default: True). If False,
-                              passwords are stored as plaintext.
         
         Returns:
             None
@@ -71,12 +67,12 @@ class KeePass:
         )
 
         self.config = config
-        self.encryption_manager = EncryptionManager() if enable_encryption else None
+        self.encryption_manager = EncryptionManager()
 
         # Load KeePass database with password prompt
         kp = self._load_database(config.database_path)
 
-        # Wrap entries with optional encryption
+        # Wrap entries with encryption
         self.entries = self._wrap_entries(kp.entries)
 
         # Apply title filter after wrapping
@@ -122,14 +118,14 @@ class KeePass:
         """Wrap pykeepass Entry objects with KeePassEntry wrapper.
         
         Converts raw pykeepass Entry objects into KeePassEntry instances with
-        optional encryption. This allows for consistent access patterns and
+        encryption. This allows for consistent access patterns and
         secure password handling across the application.
         
         Args:
             entries: List of pykeepass Entry objects from the database.
         
         Returns:
-            List of KeePassEntry wrapper objects with encryption applied if enabled.
+            List of KeePassEntry wrapper objects with encryption applied.
         """
         return [
             KeePassEntry(entry, encryption_manager=self.encryption_manager)

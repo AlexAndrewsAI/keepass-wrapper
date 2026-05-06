@@ -45,7 +45,7 @@ class KeePassEntry:
     def __init__(
         self,
         entry: KeePassEntryLike,
-        encryption_manager: EncryptionManager | None = None,
+        encryption_manager: EncryptionManager,
     ) -> None:
         """Initialize a KeePass entry from a pykeepass Entry object.
         
@@ -67,17 +67,14 @@ class KeePassEntry:
         self._encryption_manager = encryption_manager
 
         # Store password/OTP as either encrypted (bytes) or plaintext (str)
-        self.password: str | bytes | None = None
-        self.otp: str | bytes | None = None
+        self.password: bytes | None = None
+        self.otp: bytes | None = None
 
-        if encryption_manager:
-            if entry.password:
-                self.password = encryption_manager.encrypt(entry.password)
-            if entry.otp:
-                self.otp = encryption_manager.encrypt(entry.otp)
-        else:
-            self.password = entry.password if entry.password else None
-            self.otp = entry.otp if entry.otp else None
+        if entry.password:
+            self.password = encryption_manager.encrypt(entry.password)
+        if entry.otp:
+            self.otp = encryption_manager.encrypt(entry.otp)
+
 
     def get_password(self) -> str | None:
         """Retrieve the plaintext password, decrypting if necessary.
