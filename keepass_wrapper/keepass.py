@@ -10,7 +10,7 @@ import getpass
 
 from pykeepass import PyKeePass
 
-from keepass_wrapper.config import Config
+from keepass_wrapper.config import DEFAULT_TEST_DATABASE, Config
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
 
@@ -62,7 +62,7 @@ class KeePass:
         """
 
         config = Config(
-            database_path=database_path or Config.model_fields["database_path"].default,
+            database_path=database_path or DEFAULT_TEST_DATABASE,
             filter_title=filter_title,
         )
 
@@ -87,7 +87,9 @@ class KeePass:
         """Load and authenticate to the KeePass database.
         
         Prompts the user for a password and attempts to open the KeePass database
-        at the specified path. Supports multiple authentication attempts with
+        at ttion import EncryptionManager
+from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
+he specified path. Supports multiple authentication attempts with
         helpful feedback on failure.
         
         Args:

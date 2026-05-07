@@ -1,9 +1,8 @@
+import subprocess
 from unittest.mock import Mock, patch
 
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.entry import KeePassEntry
-
-
 
 
 def test_entry_with_encryption() -> None:
@@ -104,9 +103,9 @@ def test_entry_bash_with_password_success() -> None:
 
         # Verify the process was called with stdin pipe
         call_kwargs = mock_popen.call_args[1]
-        assert call_kwargs["stdin"] == -1  # subprocess.PIPE
-        assert call_kwargs["stdout"] == -1
-        assert call_kwargs["stderr"] == -1
+        assert call_kwargs["stdin"] == subprocess.PIPE
+        assert call_kwargs["stdout"] == subprocess.PIPE
+        assert call_kwargs["stderr"] == subprocess.PIPE
 
 
 

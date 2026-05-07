@@ -65,9 +65,6 @@ keepass = KeePass(
     database_path="/home/user/.config/passwords.kdbx",
     filter_title="Work"
 )
-
-# Disable in-memory encryption (store passwords plaintext)
-keepass = KeePass(enable_encryption=False)
 ```
 
 ### Finding Entries

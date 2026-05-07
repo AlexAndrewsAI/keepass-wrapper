@@ -13,11 +13,22 @@ def extract_totp_secret(otp_string: str) -> str:
 
     Returns:
         The extracted TOTP secret
+
+    Raises:
+        ValueError: If the OTP string is malformed or missing a secret
     """
+    if not otp_string:
+        raise ValueError("OTP string is empty")
+
     if "secret=" in otp_string:
-        secret = otp_string.split("secret=")[1]
+        parts = otp_string.split("secret=")
+        if len(parts) < 2:
+            raise ValueError("Malformed OTP string: secret parameter missing value")
+        secret = parts[1]
         if "&" in secret:
             secret = secret.split("&")[0]
+        if not secret:
+            raise ValueError("Malformed OTP string: secret parameter is empty")
         return secret
     return otp_string
 

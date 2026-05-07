@@ -62,9 +62,9 @@ class KeePassEntry:
             None
         """
         self.title: str = entry.title
-        self.username: str | None = entry.username if entry.username else None
-        self.url: str | None = entry.url if entry.url else None
-        self._encryption_manager = encryption_manager
+        self.username: str | None = entry.username
+        self.url: str | None = entry.url
+        self._encryption_manager: EncryptionManager = encryption_manager
 
         # Store password/OTP as either encrypted (bytes) or plaintext (str)
         self.password: bytes | None = None
@@ -79,9 +79,7 @@ class KeePassEntry:
     def get_password(self) -> str | None:
         """Retrieve the plaintext password, decrypting if necessary.
         
-        If the password is encrypted (stored as bytes), it is decrypted on-demand
-        using the encryption manager. Otherwise, the plaintext password is returned
-        as-is.
+        The password is decrypted on-demand using the encryption manager.
         
         Returns:
             The plaintext password string, or None if no password is stored.
@@ -92,13 +90,11 @@ class KeePassEntry:
         if not self.password:
             return None
 
-        if isinstance(self.password, bytes):
-            if not self._encryption_manager:
-                raise RuntimeError(
-                    "Cannot decrypt password: encryption manager not initialized"
-                )
-            return self._encryption_manager.decrypt(self.password)
-        return self.password
+        if not self._encryption_manager:
+            raise RuntimeError(
+                "Cannot decrypt password: encryption manager not initialized"
+            )
+        return self._encryption_manager.decrypt(self.password)
 
     def get_totp(self) -> str | None:
         """Generate a time-based one-time password (TOTP) code.
@@ -116,14 +112,11 @@ class KeePassEntry:
         if not self.otp:
             return None
 
-        if isinstance(self.otp, bytes):
-            if not self._encryption_manager:
-                raise RuntimeError(
-                    "Cannot decrypt password: encryption manager not initialized"
-                )
-            otp_value = self._encryption_manager.decrypt(self.otp)
-        else:
-            otp_value = self.otp
+        if not self._encryption_manager:
+            raise RuntimeError(
+                "Cannot decrypt OTP: encryption manager not initialized"
+            )
+        otp_value = self._encryption_manager.decrypt(self.otp)
 
         secret = extract_totp_secret(otp_value)
         return generate_totp(secret)
