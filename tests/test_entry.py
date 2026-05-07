@@ -1,25 +1,8 @@
+import subprocess
 from unittest.mock import Mock, patch
 
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.entry import KeePassEntry
-
-
-def test_entry_without_encryption() -> None:
-    """Test creating a KeePassEntry without encryption."""
-    mock_entry = Mock()
-    mock_entry.title = "Gmail"
-    mock_entry.username = "user@gmail.com"
-    mock_entry.password = None
-    mock_entry.otp = None
-    mock_entry.url = "https://mail.google.com"
-
-    entry = KeePassEntry(mock_entry)
-
-    assert entry.title == "Gmail"
-    assert entry.username == "user@gmail.com"
-    assert entry.password is None
-    assert entry.otp is None
-    assert entry.url == "https://mail.google.com"
 
 
 def test_entry_with_encryption() -> None:
@@ -41,20 +24,6 @@ def test_entry_with_encryption() -> None:
     assert entry.url == "https://mail.google.com"
 
 
-def test_entry_get_password_without_encryption() -> None:
-    """Test getting password when encryption is not enabled."""
-    mock_entry = Mock()
-    mock_entry.title = "Test"
-    mock_entry.username = "testuser"
-    mock_entry.password = None
-    mock_entry.otp = None
-    mock_entry.url = None
-
-    entry = KeePassEntry(mock_entry)
-    password = entry.get_password()
-
-    assert password is None
-
 
 def test_entry_get_password_with_encryption() -> None:
     """Test retrieving decrypted password."""
@@ -71,20 +40,6 @@ def test_entry_get_password_with_encryption() -> None:
     password = entry.get_password()
     assert password == "super_secret_password"
 
-
-def test_entry_get_totp_without_encryption() -> None:
-    """Test getting TOTP when encryption is not enabled."""
-    mock_entry = Mock()
-    mock_entry.title = "Test"
-    mock_entry.username = "testuser"
-    mock_entry.password = None
-    mock_entry.otp = None
-    mock_entry.url = None
-
-    entry = KeePassEntry(mock_entry)
-    totp = entry.get_totp()
-
-    assert totp is None
 
 
 def test_entry_get_totp_with_encryption() -> None:
@@ -148,9 +103,9 @@ def test_entry_bash_with_password_success() -> None:
 
         # Verify the process was called with stdin pipe
         call_kwargs = mock_popen.call_args[1]
-        assert call_kwargs["stdin"] == -1  # subprocess.PIPE
-        assert call_kwargs["stdout"] == -1
-        assert call_kwargs["stderr"] == -1
+        assert call_kwargs["stdin"] == subprocess.PIPE
+        assert call_kwargs["stdout"] == subprocess.PIPE
+        assert call_kwargs["stderr"] == subprocess.PIPE
 
 
 
@@ -162,8 +117,8 @@ def test_entry_bash_with_password_no_password() -> None:
     mock_entry.password = None
     mock_entry.otp = None
     mock_entry.url = None
-
-    entry = KeePassEntry(mock_entry)
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
 
     try:
         entry.bash_with_password(["cmd"])
@@ -180,8 +135,8 @@ def test_entry_optional_fields() -> None:
     mock_entry.password = None
     mock_entry.otp = None
     mock_entry.url = None
-
-    entry = KeePassEntry(mock_entry)
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
 
     assert entry.title == "Minimal"
     assert entry.username is None
