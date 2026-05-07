@@ -7,6 +7,7 @@ current_file = Path(__file__).resolve()
 # Convert Path to string
 DEFAULT_TEST_DATABASE: str = str(current_file.parent.parent / "tests" / "test.kdbx")
 
+
 class Config(BaseModel):
     """Configuration for KeePass wrapper."""
 

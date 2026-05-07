@@ -7,11 +7,11 @@ from keepass_wrapper.otp import extract_totp_secret, generate_totp
 
 class KeePassEntryLike(Protocol):
     """Protocol defining the interface of a pykeepass Entry.
-    
+
     This protocol ensures type compatibility with pykeepass Entry objects,
     allowing duck-typing for testing and flexibility with different KeePass
     implementations.
-    
+
     Attributes:
         title: The display name of the password entry.
         username: The associated username or login identifier.
@@ -19,6 +19,7 @@ class KeePassEntryLike(Protocol):
         password: The plaintext password value.
         otp: The OTP configuration or secret string (often in TOTP format).
     """
+
     title: str
     username: str | None
     url: str | None
@@ -28,12 +29,12 @@ class KeePassEntryLike(Protocol):
 
 class KeePassEntry:
     """Represents a KeePass password entry with optional encryption and TOTP support.
-    
+
     This class wraps a pykeepass Entry and provides secure access to sensitive data
     through on-demand decryption and automatic TOTP generation. Passwords and OTP
     secrets can be stored either encrypted (in-memory) or plaintext depending on
     the encryption manager configuration.
-    
+
     Attributes:
         title: The display name of the password entry.
         username: The associated username or login identifier.
@@ -48,16 +49,16 @@ class KeePassEntry:
         encryption_manager: EncryptionManager,
     ) -> None:
         """Initialize a KeePass entry from a pykeepass Entry object.
-        
+
         Extracts basic entry metadata and optionally encrypts sensitive data
         (password and OTP secret) using the provided encryption manager.
-        
+
         Args:
             entry: A pykeepass Entry object or compatible protocol object containing
                    the entry data to be wrapped.
             encryption_manager: An optional EncryptionManager instance for encrypting
                                sensitive fields. If None, data is stored plaintext.
-        
+
         Returns:
             None
         """
@@ -75,17 +76,16 @@ class KeePassEntry:
         if entry.otp:
             self.otp = encryption_manager.encrypt(entry.otp)
 
-
     def get_password(self) -> str | None:
         """Retrieve the plaintext password, decrypting if necessary.
-        
+
         The password is decrypted on-demand using the encryption manager.
-        
+
         Returns:
             The plaintext password string, or None if no password is stored.
-        
+
         Raises:
-            RuntimeError: If password is encrypted but no encryption manager is available.
+            RuntimeError: If no encryption manager is available.
         """
         if not self.password:
             return None
@@ -98,14 +98,14 @@ class KeePassEntry:
 
     def get_totp(self) -> str | None:
         """Generate a time-based one-time password (TOTP) code.
-        
+
         Extracts the TOTP secret from the OTP field (decrypting if necessary),
         then generates the current 6-digit TOTP code. Commonly used for
         two-factor authentication.
-        
+
         Returns:
             A 6-digit TOTP code as a string, or None if no OTP secret is stored.
-        
+
         Raises:
             RuntimeError: If OTP is encrypted but no encryption manager is available.
         """
@@ -113,9 +113,7 @@ class KeePassEntry:
             return None
 
         if not self._encryption_manager:
-            raise RuntimeError(
-                "Cannot decrypt OTP: encryption manager not initialized"
-            )
+            raise RuntimeError("Cannot decrypt OTP: encryption manager not initialized")
         otp_value = self._encryption_manager.decrypt(self.otp)
 
         secret = extract_totp_secret(otp_value)
@@ -127,21 +125,21 @@ class KeePassEntry:
         count: int = 1,
     ) -> tuple[str, str]:
         """Execute a bash command with automatic password input.
-        
+
         Runs a subprocess command and automatically pipes the password to stdin.
         Useful for automating commands that require password authentication
         (e.g., SSH, sudo, or encrypted archives). The password can be provided
         multiple times if needed for commands with repeated prompts.
-        
+
         Args:
             command: List of command tokens to execute (passed directly to Popen).
             count: Number of times to repeat the password input (default: 1).
                    Useful for commands with multiple password prompts.
-        
+
         Returns:
             A tuple of (stdout, stderr) containing the command's output streams
             as strings.
-        
+
         Raises:
             ValueError: If no password is available for the entry.
         """
