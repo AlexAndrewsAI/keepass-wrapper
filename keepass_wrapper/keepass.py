@@ -187,3 +187,9 @@ class KeePass:
                     break  # Don't add same entry multiple times
 
         return matching_entries
+
+    def close(self) -> None:
+        """Close the KeePass manager and clear sensitive data from memory."""
+        self.entries = []
+        self.encryption_manager.clear()
+        gc.collect()

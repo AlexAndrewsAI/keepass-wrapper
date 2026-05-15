@@ -6,6 +6,7 @@ encryption with built-in timestamp verification and HMAC authentication.
 """
 
 from cryptography.fernet import Fernet
+import gc
 
 
 class EncryptionManager:
@@ -80,3 +81,9 @@ class EncryptionManager:
                                              with a different key.
         """
         return self.cipher_suite.decrypt(data).decode()
+
+    def clear(self) -> None:
+        """Clear encryption keys and cipher suite from memory."""
+        self.key = b""
+        self.cipher_suite = Fernet(Fernet.generate_key())
+        gc.collect()
