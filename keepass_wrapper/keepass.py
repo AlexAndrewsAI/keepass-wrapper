@@ -90,7 +90,12 @@ class KeePass:
         """Context manager entry point."""
         return self
 
-    def __exit__(self, exc_type: any, exc_val: any, exc_tb: any) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: any,
+    ) -> None:
         """Context manager exit point, ensures sensitive data is cleared."""
         self.close()
 
