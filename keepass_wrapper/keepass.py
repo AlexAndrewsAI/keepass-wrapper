@@ -7,6 +7,7 @@ database authentication, entry wrapping, and entry filtering.
 
 import gc
 import getpass
+from typing import Any
 
 from pykeepass import PyKeePass
 
@@ -94,7 +95,7 @@ class KeePass:
         self,
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
-        exc_tb: any,
+        exc_tb: Any,
     ) -> None:
         """Context manager exit point, ensures sensitive data is cleared."""
         self.close()

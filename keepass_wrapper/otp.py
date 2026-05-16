@@ -1,5 +1,6 @@
-import pyotp
 from urllib.parse import parse_qs, urlparse
+
+import pyotp
 
 
 def extract_totp_secret(otp_string: str) -> str:

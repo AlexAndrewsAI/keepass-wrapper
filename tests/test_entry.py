@@ -24,7 +24,6 @@ def test_entry_with_encryption() -> None:
     assert entry.url == "https://mail.google.com"
 
 
-
 def test_entry_get_password_with_encryption() -> None:
     """Test retrieving decrypted password."""
     mock_entry = Mock()
@@ -39,7 +38,6 @@ def test_entry_get_password_with_encryption() -> None:
 
     password = entry.get_password()
     assert password == "super_secret_password"
-
 
 
 def test_entry_get_totp_with_encryption() -> None:
@@ -106,7 +104,6 @@ def test_entry_bash_with_password_success() -> None:
         assert call_kwargs["stdin"] == subprocess.PIPE
         assert call_kwargs["stdout"] == subprocess.PIPE
         assert call_kwargs["stderr"] == subprocess.PIPE
-
 
 
 def test_entry_bash_with_password_no_password() -> None:
