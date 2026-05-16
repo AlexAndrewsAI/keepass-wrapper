@@ -114,6 +114,7 @@ def test_keepass_find_multiple_titles(keepass_instance: KeePass) -> None:
     assert "Gmail" in titles
     assert "GitHub" in titles
 
+
 def test_keepass_all_entries_have_title(keepass_instance: KeePass) -> None:
     """Test that all loaded entries have a title field."""
     for entry in keepass_instance.entries:

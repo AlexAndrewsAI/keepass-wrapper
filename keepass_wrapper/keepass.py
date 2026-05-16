@@ -7,6 +7,7 @@ database authentication, entry wrapping, and entry filtering.
 
 import gc
 import getpass
+from typing import Any
 
 from pykeepass import PyKeePass
 
@@ -38,6 +39,7 @@ class KeePass:
         self,
         database_path: str | None = None,
         filter_title: str | None = None,
+        encryption_manager: EncryptionManager | None = None,
     ) -> None:
         """Initialize the KeePass manager and load the database.
 
@@ -52,6 +54,8 @@ class KeePass:
             filter_title: Optional title substring to filter entries after loading.
                          Only entries containing this string (case-insensitive) will
                          be retained.
+            encryption_manager: Optional EncryptionManager instance to use. If None,
+                               a new one is created.
 
         Returns:
             None
@@ -67,7 +71,7 @@ class KeePass:
         )
 
         self.config = config
-        self.encryption_manager = EncryptionManager()
+        self.encryption_manager = encryption_manager or EncryptionManager()
 
         # Load KeePass database with password prompt
         kp = self._load_database(config.database_path)
@@ -83,23 +87,34 @@ class KeePass:
         del kp
         gc.collect()
 
+    def __enter__(self) -> "KeePass":
+        """Context manager entry point."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
+        """Context manager exit point, ensures sensitive data is cleared."""
+        self.close()
+
     def _load_database(self, database_path: str) -> PyKeePass:
         """Load and authenticate to the KeePass database.
 
-                Prompts the user for a password and opens KeePass database
-                at ttion import EncryptionManager
-        from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
-        he specified path. Supports multiple authentication attempts with
-                helpful feedback on failure.
+        Prompts the user for a password and opens KeePass database
+        at the specified path. Supports multiple authentication attempts with
+        helpful feedback on failure.
 
-                Args:
-                    database_path: Path to the .kdbx database file.
+        Args:
+            database_path: Path to the .kdbx database file.
 
-                Returns:
-                    An authenticated PyKeePass instance.
+        Returns:
+            An authenticated PyKeePass instance.
 
-                Raises:
-                    ValueError: If authentication fails after 3 attempts.
+        Raises:
+            ValueError: If authentication fails after 3 attempts.
         """
         max_attempts = 3
 
@@ -187,3 +202,9 @@ class KeePass:
                     break  # Don't add same entry multiple times
 
         return matching_entries
+
+    def close(self) -> None:
+        """Close the KeePass manager and clear sensitive data from memory."""
+        self.entries = []
+        self.encryption_manager.clear()
+        gc.collect()

@@ -199,3 +199,38 @@ def test_keepass_with_title_filter_in_config(
 
     assert len(keepass.entries) == 1
     assert keepass.entries[0].title == "Gmail"
+
+
+@patch("keepass_wrapper.keepass.getpass.getpass")
+@patch("keepass_wrapper.keepass.PyKeePass")
+def test_keepass_context_manager(mock_pykeepass: Mock, mock_getpass: Mock) -> None:
+    """Test KeePass context manager calls close on exit."""
+    mock_getpass.return_value = "password"
+    mock_kp = create_mock_pykeepass([])
+    mock_pykeepass.return_value = mock_kp
+
+    with KeePass() as keepass:
+        assert isinstance(keepass, KeePass)
+        assert len(keepass.entries) == 0
+
+    # Verify memory is cleared
+    assert keepass.entries == []
+    assert keepass.encryption_manager.key == b""
+
+
+@patch("keepass_wrapper.keepass.getpass.getpass")
+@patch("keepass_wrapper.keepass.PyKeePass")
+def test_keepass_with_shared_encryption_manager(
+    mock_pykeepass: Mock, mock_getpass: Mock
+) -> None:
+    """Test KeePass initialization with injected encryption manager."""
+    mock_getpass.return_value = "password"
+    mock_kp = create_mock_pykeepass([])
+    mock_pykeepass.return_value = mock_kp
+
+    from keepass_wrapper.encryption import EncryptionManager
+
+    custom_manager = EncryptionManager()
+    keepass = KeePass(encryption_manager=custom_manager)
+
+    assert keepass.encryption_manager is custom_manager

@@ -1,5 +1,5 @@
 import subprocess
-from typing import Protocol
+from typing import Protocol, Sequence
 
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.otp import extract_totp_secret, generate_totp
@@ -56,8 +56,8 @@ class KeePassEntry:
         Args:
             entry: A pykeepass Entry object or compatible protocol object containing
                    the entry data to be wrapped.
-            encryption_manager: An optional EncryptionManager instance for encrypting
-                               sensitive fields. If None, data is stored plaintext.
+            encryption_manager: An EncryptionManager instance for encrypting
+                               sensitive fields.
 
         Returns:
             None
@@ -121,7 +121,7 @@ class KeePassEntry:
 
     def bash_with_password(
         self,
-        command: list[str],
+        command: Sequence[str],
         count: int = 1,
     ) -> tuple[str, str]:
         """Execute a bash command with automatic password input.

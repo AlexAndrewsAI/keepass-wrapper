@@ -5,6 +5,8 @@ secrets) using the cryptography library's Fernet scheme. Fernet provides strong
 encryption with built-in timestamp verification and HMAC authentication.
 """
 
+import gc
+
 from cryptography.fernet import Fernet
 
 
@@ -80,3 +82,9 @@ class EncryptionManager:
                                              with a different key.
         """
         return self.cipher_suite.decrypt(data).decode()
+
+    def clear(self) -> None:
+        """Clear encryption keys and cipher suite from memory."""
+        self.key = b""
+        self.cipher_suite = Fernet(Fernet.generate_key())
+        gc.collect()

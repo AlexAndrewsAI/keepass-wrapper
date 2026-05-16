@@ -32,22 +32,34 @@ uv sync
 
 ## Usage
 
-### Basic Example
+### Basic Example (Recommended)
+
+Using a context manager ensures that sensitive data and encryption keys are cleared from memory as soon as you are finished:
 
 ```python
-from keepass_wrapper import KeePass, Config
+from keepass_wrapper import KeePass
 
-# Initialize with default settings
-# (prompts for password, uses default .kdbx path from config)
+with KeePass(database_path="/path/to/passwords.kdbx") as keepass:
+    for entry in keepass.entries:
+        print(f"Title: {entry.title}")
+```
+
+### Manual Management
+
+If you cannot use a context manager, ensure you call `.close()` explicitly:
+
+```python
+from keepass_wrapper import KeePass
+
+# Initialize
 keepass = KeePass()
 
-# Or with custom database path
-keepass = KeePass(database_path="/path/to/passwords.kdbx")
-
-# Access entries
-for entry in keepass.entries:
-    print(f"Title: {entry.title}")
-    print(f"Username: {entry.username}")
+try:
+    # Access entries
+    results = keepass.find_entries("Gmail")
+finally:
+    # Always close to clear memory
+    keepass.close()
 ```
 
 ### Configuration
@@ -212,11 +224,22 @@ pykeepass-wrapper/
 
 ## Security Considerations
 
-- **Password handling**: All passwords encrypted in memory
-- **TOTP secrets**: OTP secrets encrypted alongside passwords
-- **Key management**: New Fernet key generated per session
-- **Garbage collection**: Explicit cleanup of PyKeePass objects after use
-- **Type safety**: Strict mypy configuration catches potential errors at development time
+- **In-Memory Encryption**: Sensitive fields (passwords, OTP secrets) are encrypted using Fernet (AES-128-CBC) while stored in memory. A unique key is generated per session.
+- **Context Management**: Use the `with KeePass(...)` pattern to ensure encryption keys and decrypted objects are cleared from memory immediately after use.
+- **Garbage Collection**: The library uses `gc.collect()` and explicit reference clearing to minimize the window where sensitive data might reside in memory.
+- **Subprocess Integration**: `bash_with_password` pipes the password directly to `stdin`. While more secure than CLI arguments, the password string briefly exists in the subprocess's input buffer.
+
+### Limitations of In-Memory Security
+
+While this wrapper provides significantly more protection than storing passwords in plaintext Python strings, users should be aware of the following:
+
+1.  **Memory Zeroing**: Python's memory management does not guarantee that physical memory is zeroed immediately after a string or byte array is deleted. Sensitive data may persist in RAM until overwritten by another process or the OS.
+2.  **Swap Space**: If your system swaps memory to disk, encrypted or plaintext secrets could be written to persistent storage. It is recommended to disable swap on systems handling highly sensitive data.
+3.  **Process Inspection**: A user with root privileges or the same user ID as the Python process can potentially inspect the process memory and extract encryption keys or decrypted secrets.
+
+## Disclaimer
+
+This software is intended for personal use and is provided "as is", without any warranty of any kind, express or implied. While efforts have been made to ensure security, there is no guarantee that this software is free of security vulnerabilities. Use it at your own risk.
 
 ## License
 

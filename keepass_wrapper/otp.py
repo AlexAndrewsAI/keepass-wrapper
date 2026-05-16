@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlparse
+
 import pyotp
 
 
@@ -6,7 +8,8 @@ def extract_totp_secret(otp_string: str) -> str:
 
     Handles formats like:
     - Plain secret: "JBSWY3DPEBLW64TMMQ======"
-    - URL format: "secret=JBSWY3DPEBLW64TMMQ======&issuer=Example"
+    - URL format: "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEBLW64TMMQ======&issuer=Example"
+    - Partial URL: "secret=JBSWY3DPEBLW64TMMQ======&issuer=Example"
 
     Args:
         otp_string: The OTP string from KeePass
@@ -20,16 +23,22 @@ def extract_totp_secret(otp_string: str) -> str:
     if not otp_string:
         raise ValueError("OTP string is empty")
 
+    # If it's a full URL or looks like one
     if "secret=" in otp_string:
-        parts = otp_string.split("secret=")
-        if len(parts) < 2:
-            raise ValueError("Malformed OTP string: secret parameter missing value")
-        secret = parts[1]
-        if "&" in secret:
-            secret = secret.split("&")[0]
-        if not secret:
-            raise ValueError("Malformed OTP string: secret parameter is empty")
-        return secret
+        # Handle both full otpauth:// URLs and partial secret=... strings
+        query = otp_string
+        if "://" in otp_string:
+            parsed = urlparse(otp_string)
+            query = parsed.query
+
+        params = parse_qs(query)
+        secrets = params.get("secret")
+
+        if not secrets or not secrets[0]:
+            raise ValueError("Malformed OTP string: secret parameter missing or empty")
+
+        return secrets[0]
+
     return otp_string
 
 
