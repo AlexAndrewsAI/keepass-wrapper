@@ -38,6 +38,7 @@ class KeePass:
         self,
         database_path: str | None = None,
         filter_title: str | None = None,
+        encryption_manager: EncryptionManager | None = None,
     ) -> None:
         """Initialize the KeePass manager and load the database.
 
@@ -52,6 +53,8 @@ class KeePass:
             filter_title: Optional title substring to filter entries after loading.
                          Only entries containing this string (case-insensitive) will
                          be retained.
+            encryption_manager: Optional EncryptionManager instance to use. If None,
+                               a new one is created.
 
         Returns:
             None
@@ -67,7 +70,7 @@ class KeePass:
         )
 
         self.config = config
-        self.encryption_manager = EncryptionManager()
+        self.encryption_manager = encryption_manager or EncryptionManager()
 
         # Load KeePass database with password prompt
         kp = self._load_database(config.database_path)
@@ -82,6 +85,14 @@ class KeePass:
         # Clean up references
         del kp
         gc.collect()
+
+    def __enter__(self) -> "KeePass":
+        """Context manager entry point."""
+        return self
+
+    def __exit__(self, exc_type: any, exc_val: any, exc_tb: any) -> None:
+        """Context manager exit point, ensures sensitive data is cleared."""
+        self.close()
 
     def _load_database(self, database_path: str) -> PyKeePass:
         """Load and authenticate to the KeePass database.
