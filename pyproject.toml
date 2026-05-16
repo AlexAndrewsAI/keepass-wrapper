@@ -1,6 +1,6 @@
 [project]
 name = "keepass-wrapper"
-version = "0.1.0"
+version = "0.1.1"
 description = "A secure KeePass wrapper with encryption and TOTP support"
 readme = "README.md"
 requires-python = ">=3.10"
