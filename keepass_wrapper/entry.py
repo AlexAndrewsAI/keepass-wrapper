@@ -56,8 +56,8 @@ class KeePassEntry:
         Args:
             entry: A pykeepass Entry object or compatible protocol object containing
                    the entry data to be wrapped.
-            encryption_manager: An optional EncryptionManager instance for encrypting
-                               sensitive fields. If None, data is stored plaintext.
+            encryption_manager: An EncryptionManager instance for encrypting
+                               sensitive fields.
 
         Returns:
             None

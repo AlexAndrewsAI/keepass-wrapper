@@ -102,20 +102,18 @@ class KeePass:
     def _load_database(self, database_path: str) -> PyKeePass:
         """Load and authenticate to the KeePass database.
 
-                Prompts the user for a password and opens KeePass database
-                at ttion import EncryptionManager
-        from keepass_wrapper.entry import KeePassEntry, KeePassEntryLike
-        he specified path. Supports multiple authentication attempts with
-                helpful feedback on failure.
+        Prompts the user for a password and opens KeePass database
+        at the specified path. Supports multiple authentication attempts with
+        helpful feedback on failure.
 
-                Args:
-                    database_path: Path to the .kdbx database file.
+        Args:
+            database_path: Path to the .kdbx database file.
 
-                Returns:
-                    An authenticated PyKeePass instance.
+        Returns:
+            An authenticated PyKeePass instance.
 
-                Raises:
-                    ValueError: If authentication fails after 3 attempts.
+        Raises:
+            ValueError: If authentication fails after 3 attempts.
         """
         max_attempts = 3
 

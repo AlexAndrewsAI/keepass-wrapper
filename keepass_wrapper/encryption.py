@@ -87,3 +87,4 @@ class EncryptionManager:
         self.key = b""
         self.cipher_suite = Fernet(Fernet.generate_key())
         gc.collect()
+        
