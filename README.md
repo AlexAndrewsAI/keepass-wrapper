@@ -252,4 +252,3 @@ This is a template-based project. Feel free to use it as a starting point for yo
 ## Author
 
 AlexAndrewsAI <alex.andrews.ai@protonmail.com>
-```
