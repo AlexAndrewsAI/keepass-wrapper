@@ -19,6 +19,32 @@ def test_extract_totp_secret_with_ampersand() -> None:
     assert result == "ABC123"
 
 
+def test_extract_totp_secret_empty_string() -> None:
+    """Test that empty OTP string raises ValueError."""
+    try:
+        extract_totp_secret("")
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "empty" in str(e)
+
+
+def test_extract_totp_secret_full_otpauth_url() -> None:
+    """Test extraction from a full otpauth:// URL."""
+    otp_url = "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEBLW64TMMQ======&issuer=Example"
+    result = extract_totp_secret(otp_url)
+    assert result == "JBSWY3DPEBLW64TMMQ======"
+
+
+def test_extract_totp_secret_malformed_url() -> None:
+    """Test that URL with missing secret raises ValueError."""
+    otp_url = "secret=&issuer=Example"
+    try:
+        extract_totp_secret(otp_url)
+        assert False, "Should have raised ValueError"
+    except ValueError as e:
+        assert "Malformed" in str(e)
+
+
 def test_generate_totp_returns_string() -> None:
     # Using a test secret
     secret = "JBSWY3DPEBLW64TMMQ======"

@@ -76,6 +76,66 @@ def test_entry_get_totp_with_url_format() -> None:
     assert totp.isdigit()
 
 
+def test_entry_get_password_no_encryption_manager() -> None:
+    """Test get_password raises RuntimeError when encryption manager is removed."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = None
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    # Remove the encryption manager to trigger the error
+    entry._encryption_manager = None  # type: ignore[assignment]
+
+    try:
+        entry.get_password()
+        assert False, "Should have raised RuntimeError"
+    except RuntimeError as e:
+        assert "Cannot decrypt password" in str(e)
+
+
+def test_entry_get_totp_no_otp() -> None:
+    """Test get_totp returns None when no OTP secret is stored."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = None
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    totp = entry.get_totp()
+    assert totp is None
+
+
+def test_entry_get_totp_no_encryption_manager() -> None:
+    """Test get_totp raises RuntimeError when encryption manager is removed."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = "JBSWY3DPEBLW64TMMQ======"
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    # Remove the encryption manager to trigger the error
+    entry._encryption_manager = None  # type: ignore[assignment]
+
+    try:
+        entry.get_totp()
+        assert False, "Should have raised RuntimeError"
+    except RuntimeError as e:
+        assert "Cannot decrypt OTP" in str(e)
+
+
 def test_entry_bash_with_password_success() -> None:
     """Test executing bash command with password input."""
     mock_entry = Mock()
