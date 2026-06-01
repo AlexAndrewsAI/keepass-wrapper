@@ -28,15 +28,6 @@ dependencies = [
     "pydantic-settings>=2.14.1",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-    "uv>=0.5.0",
-    "ruff",
-    "mypy",
-]
-
 [project.urls]
 Homepage = "https://github.com/AlexAndrewsAI/pykeepass-wrapper"
 Repository = "https://github.com/AlexAndrewsAI/pykeepass-wrapper.git"
@@ -83,17 +74,15 @@ select = [
 ignore = ["D203", "D213"]
 
 [tool.ruff.lint.per-file-ignores]
+# Only allow rules that *actually* fire in the test suite. AGENTS.md mandates
+# one-line docstrings on every test function, so D103 is intentionally NOT
+# ignored here (it would silently contradict the project rule). Dead rules
+# (B011/PT015/PT017/S110) were removed — none of them trigger today.
 "tests/**" = [
     "S101",  # Allow assert statements in tests
     "S105",  # Allow hardcoded password strings in test data
     "D100",  # Allow missing module docstrings in tests
-    "D103",  # Allow missing function docstrings in tests
     "D104",  # Allow missing package docstrings in tests
-    "D401",  # Allow non-imperative mood docstrings in tests
-    "PT015", # Allow assert False in tests (pytest.raises preferred but not required)
-    "B011",  # Allow assert False for exception testing
-    "S110",  # Allow try-except-pass in tests
-    "PT017", # Allow assert on exception in except block
 ]
 "temp.py" = ["D100"]  # Temporary file
 
@@ -110,7 +99,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=keepass_wrapper --cov-report=term-missing --cov-fail-under=80"
+addopts = "--cov=keepass_wrapper --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
 source = ["keepass_wrapper"]

@@ -51,6 +51,8 @@ class KeePassEntry:
 
     """
 
+    __slots__ = ("_encryption_manager", "otp", "password", "title", "url", "username")
+
     def __init__(
         self,
         entry: KeePassEntryLike,
@@ -133,26 +135,46 @@ class KeePassEntry:
     def bash_with_password(
         self,
         command: Sequence[str],
-        count: int = 1,
     ) -> tuple[str, str]:
-        """Execute a bash command with automatic password input.
+        """Execute a command with the password piped to stdin once.
 
-        Runs a subprocess command and automatically pipes the password to stdin.
-        Useful for automating commands that require password authentication
-        (e.g., SSH, sudo, or encrypted archives). The password can be provided
-        multiple times if needed for commands with repeated prompts.
+        Runs a subprocess and writes the entry's plaintext password followed by
+        a newline to the child's stdin exactly once. Useful for automating
+        commands that require password authentication (e.g., SSH, sudo, or
+        encrypted archives) without exposing the password on the command line.
+
+        The password is sent to stdin exactly once by design. Commands that
+        issue multiple password prompts should rely on a single authentication
+        round (for example, ``sudo -S`` caches the credential for the rest of
+        the session). This avoids multiplying the password's memory footprint
+        and limits the window where it sits in the child's input buffer.
+
+        Security considerations:
+            - The password is decrypted on demand, written to the child's
+              stdin, and the subprocess is awaited to completion before this
+              method returns.
+            - The password is not passed via the command line, so it does not
+              appear in process listings (``ps``).
+            - ``shell=False`` is the default for ``subprocess.Popen``; the
+              caller is responsible for ensuring the command tokens are
+              trusted. The ``# noqa: S603`` annotation acknowledges the
+              bandit security warning about subprocess invocation.
+            - After this method returns, the decrypted password string still
+              exists in the Python process memory until garbage collection
+              reclaims it. CPython does not guarantee physical memory
+              zeroing.
 
         Args:
-            command: List of command tokens to execute (passed directly to Popen).
-            count: Number of times to repeat the password input (default: 1).
-                   Useful for commands with multiple password prompts.
+            command: List of command tokens to execute (passed directly to
+                ``subprocess.Popen`` without a shell).
 
         Returns:
-            A tuple of (stdout, stderr) containing the command's output streams
-            as strings.
+            A tuple of ``(stdout, stderr)`` containing the command's output
+            streams as strings.
 
         Raises:
             ValueError: If no password is available for the entry.
+            OSError: If the subprocess cannot be started.
 
         """
         password = self.get_password()
@@ -167,7 +189,8 @@ class KeePassEntry:
             text=True,
         )
 
-        password_input = (password + "\n") * count
-        stdout, stderr = process.communicate(input=password_input)
+        # Send the password exactly once. The trailing newline terminates the
+        # input line for line-buffered consumers (e.g., sudo, ssh).
+        stdout, stderr = process.communicate(input=password + "\n")
 
         return stdout, stderr

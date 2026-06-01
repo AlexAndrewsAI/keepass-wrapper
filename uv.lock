@@ -374,15 +374,6 @@ dependencies = [
     { name = "pyotp" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "uv" },
-]
-
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
@@ -395,17 +386,11 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cryptography", specifier = ">=41.0" },
-    { name = "mypy", marker = "extra == 'dev'" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "pykeepass", specifier = ">=4.0" },
     { name = "pyotp", specifier = ">=2.9" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "ruff", marker = "extra == 'dev'" },
-    { name = "uv", marker = "extra == 'dev'", specifier = ">=0.5.0" },
 ]
-provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
