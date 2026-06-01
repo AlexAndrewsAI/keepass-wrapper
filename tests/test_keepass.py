@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+from pykeepass.exceptions import CredentialsError  # type: ignore
 
 from keepass_wrapper.keepass import KeePass
 
@@ -12,7 +13,7 @@ def create_mock_entry(
     otp: str | None = None,
     url: str | None = None,
 ) -> Mock:
-    """Factory function to create mock KeePass entries."""
+    """Create a mock pykeepass entry for tests."""
     mock_entry = Mock()
     mock_entry.title = title
     mock_entry.username = username
@@ -23,7 +24,7 @@ def create_mock_entry(
 
 
 def create_mock_pykeepass(entries: list[Mock]) -> Mock:
-    """Factory function to create mock PyKeePass instance."""
+    """Create a mock PyKeePass instance with the given entries."""
     mock_kp = Mock()
     mock_kp.entries = entries
     return mock_kp
@@ -54,7 +55,7 @@ def test_keepass_authentication_failure_then_success(
 ) -> None:
     """Test KeePass retries on authentication failure."""
     mock_kp = create_mock_pykeepass([])
-    mock_pykeepass.side_effect = [Exception("Wrong password"), mock_kp]
+    mock_pykeepass.side_effect = [CredentialsError("Wrong password"), mock_kp]
     mock_getpass.return_value = "password"
 
     keepass = KeePass()
@@ -68,7 +69,7 @@ def test_keepass_authentication_max_retries(
     mock_pykeepass: Mock, mock_getpass: Mock
 ) -> None:
     """Test KeePass raises error after max authentication attempts."""
-    mock_pykeepass.side_effect = Exception("Wrong password")
+    mock_pykeepass.side_effect = CredentialsError("Wrong password")
     mock_getpass.return_value = "password"
 
     with pytest.raises(ValueError, match="Failed to authenticate"):
@@ -215,7 +216,10 @@ def test_keepass_context_manager(mock_pykeepass: Mock, mock_getpass: Mock) -> No
 
     # Verify memory is cleared
     assert keepass.entries == []
-    assert keepass.encryption_manager.key == b""
+    # Key should be overwritten with zeros, not empty
+    assert keepass.encryption_manager._key == b"\x00" * len(
+        keepass.encryption_manager._key
+    )
 
 
 @patch("keepass_wrapper.keepass.getpass.getpass")

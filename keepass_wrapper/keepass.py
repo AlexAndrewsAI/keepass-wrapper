@@ -7,9 +7,11 @@ database authentication, entry wrapping, and entry filtering.
 
 import gc
 import getpass
+import logging
 from typing import Any
 
 from pykeepass import PyKeePass
+from pykeepass.exceptions import BinaryError, CredentialsError  # type: ignore
 
 from keepass_wrapper.config import DEFAULT_TEST_DATABASE, Config
 from keepass_wrapper.encryption import EncryptionManager
@@ -29,6 +31,7 @@ class KeePass:
         encryption_manager: EncryptionManager instance for encrypting passwords and
                            OTP secrets.
         entries: List of KeePassEntry objects loaded from the database.
+
     """
 
     config: Config
@@ -63,8 +66,8 @@ class KeePass:
         Raises:
             ValueError: If unable to authenticate to the KeePass database after
                        the maximum number of attempts (3).
-        """
 
+        """
         config = Config(
             database_path=database_path or DEFAULT_TEST_DATABASE,
             filter_title=filter_title,
@@ -76,16 +79,17 @@ class KeePass:
         # Load KeePass database with password prompt
         kp = self._load_database(config.database_path)
 
-        # Wrap entries with encryption
-        self.entries = self._wrap_entries(kp.entries)
+        try:
+            # Wrap entries with encryption
+            self.entries = self._wrap_entries(kp.entries)
 
-        # Apply title filter after wrapping
-        if config.filter_title:
-            self.entries = self.find_entries(config.filter_title)
-
-        # Clean up references
-        del kp
-        gc.collect()
+            # Apply title filter after wrapping
+            if config.filter_title:
+                self.entries = self._apply_filter(config.filter_title)
+        finally:
+            # Clean up references
+            del kp
+            gc.collect()
 
     def __enter__(self) -> "KeePass":
         """Context manager entry point."""
@@ -115,6 +119,7 @@ class KeePass:
 
         Raises:
             ValueError: If authentication fails after 3 attempts.
+
         """
         max_attempts = 3
 
@@ -122,11 +127,12 @@ class KeePass:
             try:
                 password = getpass.getpass("Enter KeePass password: ")
                 return PyKeePass(database_path, password=password)
-            except Exception as e:
-                print(f"Authentication failed: {e}")
+            except (CredentialsError, BinaryError) as e:
+                logging.warning("Authentication failed: %s", e)
                 if attempt < max_attempts - 1:
-                    print(
-                        f"Try again ({max_attempts - attempt - 1} attempts remaining)."
+                    logging.warning(
+                        "Try again (%d attempts remaining).",
+                        max_attempts - attempt - 1,
                     )
                 else:
                     raise ValueError(
@@ -145,11 +151,28 @@ class KeePass:
 
         Returns:
             List of KeePassEntry wrapper objects with encryption applied.
+
         """
         return [
             KeePassEntry(entry, encryption_manager=self.encryption_manager)
             for entry in entries
         ]
+
+    def _apply_filter(self, filter_title: str) -> list[KeePassEntry]:
+        """Apply title filter to entries during initialization.
+
+        This is a private method used during initialization to filter entries
+        by title. It delegates to the public find_entries method but keeps
+        initialization logic separate from the public search API.
+
+        Args:
+            filter_title: Title substring to filter entries by (case-insensitive).
+
+        Returns:
+            Filtered list of KeePassEntry objects.
+
+        """
+        return self.find_entries(filter_title)
 
     def find_entries(
         self,
@@ -179,6 +202,7 @@ class KeePass:
         Note:
             If both exact and startswith are False (the default), matching uses
             substring containment (the search term can appear anywhere in the title).
+
         """
         titles_to_search = title if isinstance(title, list) else [title]
         matching_entries: list[KeePassEntry] = []

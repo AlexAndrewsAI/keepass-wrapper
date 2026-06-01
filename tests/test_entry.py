@@ -1,6 +1,8 @@
 import subprocess
 from unittest.mock import Mock, patch
 
+import pytest
+
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.entry import KeePassEntry
 
@@ -76,6 +78,60 @@ def test_entry_get_totp_with_url_format() -> None:
     assert totp.isdigit()
 
 
+def test_entry_get_password_no_encryption_manager() -> None:
+    """Test get_password raises RuntimeError when encryption manager is removed."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = None
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    # Remove the encryption manager to trigger the error
+    entry._encryption_manager = None  # type: ignore[assignment]
+
+    with pytest.raises(RuntimeError, match="Cannot decrypt password"):
+        entry.get_password()
+
+
+def test_entry_get_totp_no_otp() -> None:
+    """Test get_totp returns None when no OTP secret is stored."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = None
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    totp = entry.get_totp()
+    assert totp is None
+
+
+def test_entry_get_totp_no_encryption_manager() -> None:
+    """Test get_totp raises RuntimeError when encryption manager is removed."""
+    mock_entry = Mock()
+    mock_entry.title = "Test"
+    mock_entry.username = "user"
+    mock_entry.password = "secret"
+    mock_entry.otp = "JBSWY3DPEBLW64TMMQ======"
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    # Remove the encryption manager to trigger the error
+    entry._encryption_manager = None  # type: ignore[assignment]
+
+    with pytest.raises(RuntimeError, match="Cannot decrypt OTP"):
+        entry.get_totp()
+
+
 def test_entry_bash_with_password_success() -> None:
     """Test executing bash command with password input."""
     mock_entry = Mock()
@@ -105,6 +161,39 @@ def test_entry_bash_with_password_success() -> None:
         assert call_kwargs["stdout"] == subprocess.PIPE
         assert call_kwargs["stderr"] == subprocess.PIPE
 
+        # Verify the password is sent exactly once with a single trailing newline
+        communicate_input = mock_process.communicate.call_args[1]["input"]
+        assert communicate_input == "secure_pass\n"
+        assert communicate_input.count("secure_pass") == 1
+        assert communicate_input.count("\n") == 1
+
+
+def test_entry_bash_with_password_rejects_count_kwarg() -> None:
+    """Test that bash_with_password no longer accepts a count parameter.
+
+    Removing the ``count`` parameter is an intentional security improvement:
+    it prevents multiplying the password's memory footprint by repeating it
+    in the input buffer. Callers that previously used ``count > 1`` should
+    switch to a single authentication round (e.g., ``sudo -S``).
+    """
+    mock_entry = Mock()
+    mock_entry.title = "SSH"
+    mock_entry.username = "admin"
+    mock_entry.password = "secure_pass"
+    mock_entry.otp = None
+    mock_entry.url = None
+
+    manager = EncryptionManager()
+    entry = KeePassEntry(mock_entry, encryption_manager=manager)
+
+    with patch("subprocess.Popen") as mock_popen:
+        mock_process = Mock()
+        mock_process.communicate.return_value = ("output", "")
+        mock_popen.return_value = mock_process
+
+        with pytest.raises(TypeError):
+            entry.bash_with_password(["ssh", "user@host"], count=2)  # type: ignore[call-arg]
+
 
 def test_entry_bash_with_password_no_password() -> None:
     """Test bash_with_password raises error when password not available."""
@@ -117,11 +206,8 @@ def test_entry_bash_with_password_no_password() -> None:
     manager = EncryptionManager()
     entry = KeePassEntry(mock_entry, encryption_manager=manager)
 
-    try:
+    with pytest.raises(ValueError, match="Password not available"):
         entry.bash_with_password(["cmd"])
-        assert False, "Should have raised ValueError"
-    except ValueError as e:
-        assert "Password not available" in str(e)
 
 
 def test_entry_optional_fields() -> None:

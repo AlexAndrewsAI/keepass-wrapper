@@ -1,3 +1,8 @@
+"""OTP module.
+
+Provides TOTP secret extraction and code generation utilities.
+"""
+
 from urllib.parse import parse_qs, urlparse
 
 import pyotp
@@ -19,6 +24,7 @@ def extract_totp_secret(otp_string: str) -> str:
 
     Raises:
         ValueError: If the OTP string is malformed or missing a secret
+
     """
     if not otp_string:
         raise ValueError("OTP string is empty")
@@ -50,6 +56,7 @@ def generate_totp(secret: str) -> str:
 
     Returns:
         The current 6-digit TOTP code
+
     """
     totp = pyotp.TOTP(secret)
     return totp.now()

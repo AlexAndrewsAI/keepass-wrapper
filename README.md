@@ -2,6 +2,11 @@
 
 A secure KeePass password manager wrapper with encryption and TOTP support using **uv**, **pydantic**, and **pytest**.
 
+## Uses
+
+- [mount-encrypted-filesystem](https://github.com/AlexAndrewsAI/mount-encrypted-filesystem)
+- [backup-keepass-unlock](https://github.com/AlexAndrewsAI/backup-keepass-unlock)
+
 ## Overview
 
 This package provides a Python wrapper around **pykeepass** for managing KeePass databases with additional security features:
@@ -181,23 +186,28 @@ uv run ruff format keepass_wrapper tests
 ## Project Structure
 
 ```
-pykeepass-wrapper/
+keepass-wrapper/
+├── AGENTS_MANUAL_CHECKS.md
+├── AGENTS.md
 ├── .gitignore
-├── pyproject.toml
-├── README.md
-├── keepass_wrapper/
-│   ├── __init__.py
+├── keepass_wrapper
 │   ├── config.py
 │   ├── encryption.py
 │   ├── entry.py
+│   ├── __init__.py
 │   ├── keepass.py
 │   └── otp.py
-└── tests/
-    ├── __init__.py
-    ├── test_encryption.py
-    ├── test_entry.py
-    ├── test_keepass.py
-    └── test_otp.py
+├── pyproject.toml
+├── README.md
+├── tests
+│   ├── __init__.py
+│   ├── test_encryption.py
+│   ├── test_entry.py
+│   ├── test.kdbx
+│   ├── test_kdbx.py
+│   ├── test_keepass.py
+│   └── test_otp.py
+└── uv.lock
 ```
 
 ## Features
@@ -209,18 +219,6 @@ pykeepass-wrapper/
 - **Bash Integration**: Execute commands with automatic password input
 - **Error Handling**: Graceful authentication retry with max attempt limits
 - **Testing**: Comprehensive test coverage with mocked KeePass database
-
-## Python Best Practices Used
-
-- ✅ **Type hints**: Full type annotations throughout
-- ✅ **Docstrings**: Clear descriptions of modules, classes, and functions
-- ✅ **Project structure**: Proper package layout with separation of concerns
-- ✅ **Testing**: Comprehensive test suite with unit and integration tests
-- ✅ **Configuration**: Externalized config using pydantic BaseModel
-- ✅ **Linting**: Code quality checks with ruff
-- ✅ **Type checking**: Static type checking with mypy (strict mode)
-- ✅ **Dependency management**: Explicit dependencies in pyproject.toml
-- ✅ **Python versions**: Supports Python 3.10+
 
 ## Security Considerations
 

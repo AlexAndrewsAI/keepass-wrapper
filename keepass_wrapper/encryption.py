@@ -29,8 +29,9 @@ class EncryptionManager:
           not for persistent storage.
 
     Attributes:
-        key: The Fernet encryption key as bytes (randomly generated on init).
-        cipher_suite: The Fernet cipher instance used for encryption/decryption.
+        _key: The Fernet encryption key as bytes (randomly generated on init).
+        _cipher_suite: The Fernet cipher instance used for encryption/decryption.
+
     """
 
     def __init__(self) -> None:
@@ -43,9 +44,10 @@ class EncryptionManager:
 
         Returns:
             None
+
         """
-        self.key: bytes = Fernet.generate_key()
-        self.cipher_suite: Fernet = Fernet(self.key)
+        self._key: bytes = Fernet.generate_key()
+        self._cipher_suite: Fernet = Fernet(self._key)
 
     def encrypt(self, data: str) -> bytes:
         """Encrypt a plaintext string using Fernet symmetric encryption.
@@ -54,14 +56,18 @@ class EncryptionManager:
         Fernet cipher suite. The resulting ciphertext includes a timestamp and
         HMAC for authentication and tamper detection.
 
+        Note:
+            Only UTF-8 encoded strings are supported.
+
         Args:
             data: The plaintext string to encrypt (e.g., a password or OTP secret).
 
         Returns:
             Encrypted bytes containing the ciphertext, timestamp, and HMAC.
             Can be safely stored and later decrypted with the decrypt() method.
+
         """
-        return self.cipher_suite.encrypt(data.encode())
+        return self._cipher_suite.encrypt(data.encode())
 
     def decrypt(self, data: bytes) -> str:
         """Decrypt Fernet-encrypted bytes to plaintext string.
@@ -69,6 +75,9 @@ class EncryptionManager:
         Decrypts the ciphertext using the session's Fernet cipher suite. The
         timestamp and HMAC are automatically verified; an exception is raised
         if the data is tampered with or expired.
+
+        Note:
+            Only UTF-8 encoded strings are supported.
 
         Args:
             data: The encrypted bytes (typically produced by encrypt()).
@@ -80,11 +89,20 @@ class EncryptionManager:
             cryptography.fernet.InvalidToken: If the ciphertext is invalid,
                                              tampered with, or was encrypted
                                              with a different key.
+
         """
-        return self.cipher_suite.decrypt(data).decode()
+        return self._cipher_suite.decrypt(data).decode()
 
     def clear(self) -> None:
-        """Clear encryption keys and cipher suite from memory."""
-        self.key = b""
-        self.cipher_suite = Fernet(Fernet.generate_key())
+        """Clear encryption keys and cipher suite from memory.
+
+        Overwrites the key buffer with zeros before reassignment to minimize
+        the time the key remains in memory after clearing.
+        """
+        # Overwrite key bytes with zeros before reassigning
+        key_buffer = bytearray(self._key)
+        for i in range(len(key_buffer)):
+            key_buffer[i] = 0
+        self._key = bytes(key_buffer)
+        self._cipher_suite = Fernet(Fernet.generate_key())
         gc.collect()

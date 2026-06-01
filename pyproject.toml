@@ -1,10 +1,10 @@
 [project]
 name = "keepass-wrapper"
-version = "0.2.1"
+dynamic = ["version"]
 description = "A secure KeePass wrapper with encryption and TOTP support"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "AlexAndrewsAI", email = "alex.andrews.ai@protonmail.com"}
 ]
@@ -28,15 +28,6 @@ dependencies = [
     "pydantic-settings>=2.14.1",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-cov>=4.0",
-    "uv>=0.5.0",
-    "ruff",
-    "mypy",
-]
-
 [project.urls]
 Homepage = "https://github.com/AlexAndrewsAI/pykeepass-wrapper"
 Repository = "https://github.com/AlexAndrewsAI/pykeepass-wrapper.git"
@@ -51,11 +42,49 @@ dev = [
     "mypy",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "keepass_wrapper/__init__.py"
+
+[tool.uv]
+
 [tool.ruff]
 line-length = 88
 target-version = "py310"
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes (undefined names, unused imports)
+    "W",   # pycodestyle warnings
+    "D",   # pydocstyle (docstring conventions)
+    "S",   # flake8-bandit (security checks)
+    "B",   # flake8-bugbear (common bugs)
+    "I",   # isort (import sorting)
+    "G",   # flake8-logging-format (logging format)
+    "C4",  # flake8-comprehensions (comprehension optimizations)
+    "PT",  # flake8-pytest-style (pytest conventions)
+    "UP",  # pyupgrade (modernize Python syntax)
+    "ARG", # flake8-unused-arguments (unused function arguments)
+    "RUF", # ruff-specific rules
+    "SIM", # flake8-simplify (code simplification)
+]
+ignore = ["D203", "D213"]
+
+[tool.ruff.lint.per-file-ignores]
+# Only allow rules that *actually* fire in the test suite. AGENTS.md mandates
+# one-line docstrings on every test function, so D103 is intentionally NOT
+# ignored here (it would silently contradict the project rule). Dead rules
+# (B011/PT015/PT017/S110) were removed — none of them trigger today.
+"tests/**" = [
+    "S101",  # Allow assert statements in tests
+    "S105",  # Allow hardcoded password strings in test data
+    "D100",  # Allow missing module docstrings in tests
+    "D104",  # Allow missing package docstrings in tests
+]
+"temp.py" = ["D100"]  # Temporary file
 
 [tool.mypy]
 python_version = "3.10"
@@ -70,3 +99,16 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=keepass_wrapper --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+source = ["keepass_wrapper"]
+omit = []
+parallel = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
