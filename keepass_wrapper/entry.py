@@ -1,5 +1,11 @@
+"""Entry module.
+
+Provides KeePass entry wrappers with encryption and TOTP capabilities.
+"""
+
 import subprocess
-from typing import Protocol, Sequence
+from collections.abc import Sequence
+from typing import Protocol
 
 from keepass_wrapper.encryption import EncryptionManager
 from keepass_wrapper.otp import extract_totp_secret, generate_totp
@@ -18,6 +24,7 @@ class KeePassEntryLike(Protocol):
         url: The website or service URL associated with the entry.
         password: The plaintext password value.
         otp: The OTP configuration or secret string (often in TOTP format).
+
     """
 
     title: str
@@ -41,6 +48,7 @@ class KeePassEntry:
         url: The website or service URL associated with the entry.
         password: The password value (encrypted as bytes or plaintext str).
         otp: The OTP secret (encrypted as bytes or plaintext str).
+
     """
 
     def __init__(
@@ -61,6 +69,7 @@ class KeePassEntry:
 
         Returns:
             None
+
         """
         self.title: str = entry.title
         self.username: str | None = entry.username
@@ -86,6 +95,7 @@ class KeePassEntry:
 
         Raises:
             RuntimeError: If no encryption manager is available.
+
         """
         if not self.password:
             return None
@@ -108,6 +118,7 @@ class KeePassEntry:
 
         Raises:
             RuntimeError: If OTP is encrypted but no encryption manager is available.
+
         """
         if not self.otp:
             return None
@@ -142,12 +153,13 @@ class KeePassEntry:
 
         Raises:
             ValueError: If no password is available for the entry.
+
         """
         password = self.get_password()
         if not password:
             raise ValueError("Password not available for bash execution")
 
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S603  # Intentionally piping password to subprocess stdin
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

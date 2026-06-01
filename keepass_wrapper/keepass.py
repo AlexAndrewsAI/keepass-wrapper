@@ -29,6 +29,7 @@ class KeePass:
         encryption_manager: EncryptionManager instance for encrypting passwords and
                            OTP secrets.
         entries: List of KeePassEntry objects loaded from the database.
+
     """
 
     config: Config
@@ -63,8 +64,8 @@ class KeePass:
         Raises:
             ValueError: If unable to authenticate to the KeePass database after
                        the maximum number of attempts (3).
-        """
 
+        """
         config = Config(
             database_path=database_path or DEFAULT_TEST_DATABASE,
             filter_title=filter_title,
@@ -115,6 +116,7 @@ class KeePass:
 
         Raises:
             ValueError: If authentication fails after 3 attempts.
+
         """
         max_attempts = 3
 
@@ -145,6 +147,7 @@ class KeePass:
 
         Returns:
             List of KeePassEntry wrapper objects with encryption applied.
+
         """
         return [
             KeePassEntry(entry, encryption_manager=self.encryption_manager)
@@ -179,6 +182,7 @@ class KeePass:
         Note:
             If both exact and startswith are False (the default), matching uses
             substring containment (the search term can appear anywhere in the title).
+
         """
         titles_to_search = title if isinstance(title, list) else [title]
         matching_entries: list[KeePassEntry] = []

@@ -31,6 +31,7 @@ class EncryptionManager:
     Attributes:
         key: The Fernet encryption key as bytes (randomly generated on init).
         cipher_suite: The Fernet cipher instance used for encryption/decryption.
+
     """
 
     def __init__(self) -> None:
@@ -43,6 +44,7 @@ class EncryptionManager:
 
         Returns:
             None
+
         """
         self.key: bytes = Fernet.generate_key()
         self.cipher_suite: Fernet = Fernet(self.key)
@@ -60,6 +62,7 @@ class EncryptionManager:
         Returns:
             Encrypted bytes containing the ciphertext, timestamp, and HMAC.
             Can be safely stored and later decrypted with the decrypt() method.
+
         """
         return self.cipher_suite.encrypt(data.encode())
 
@@ -80,6 +83,7 @@ class EncryptionManager:
             cryptography.fernet.InvalidToken: If the ciphertext is invalid,
                                              tampered with, or was encrypted
                                              with a different key.
+
         """
         return self.cipher_suite.decrypt(data).decode()
 

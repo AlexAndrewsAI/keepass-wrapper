@@ -1,3 +1,8 @@
+"""Configuration module.
+
+Provides Pydantic-based configuration management for KeePass wrapper.
+"""
+
 from pathlib import Path
 
 from pydantic import Field
