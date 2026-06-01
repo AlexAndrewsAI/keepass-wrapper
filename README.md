@@ -2,6 +2,11 @@
 
 A secure KeePass password manager wrapper with encryption and TOTP support using **uv**, **pydantic**, and **pytest**.
 
+## Uses
+
+- [mount-encrypted-filesystem](https://github.com/AlexAndrewsAI/mount-encrypted-filesystem)
+- [backup-keepass-unlock](https://github.com/AlexAndrewsAI/backup-keepass-unlock)
+
 ## Overview
 
 This package provides a Python wrapper around **pykeepass** for managing KeePass databases with additional security features:
